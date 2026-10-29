@@ -1,0 +1,32 @@
+<%# Payment schedule laid out in side-by-side columns so every installment fits on one printed page. %>
+<%
+  const showGarage = plan.garagePrice > 0;
+  const rows = [{ no: 'المقدم', date: plan.startDate, unit: plan.downPayment, garage: 0, maintenance: 0, total: plan.downPayment, down: true }, ...plan.installments];
+  const cols = rows.length <= 13 ? 1 : rows.length <= 26 ? 2 : rows.length <= 61 ? 3 : 4;
+  // Very long plans show number / date / total only; the breakdown is in the totals row below.
+  const compact = cols === 4;
+  const per = Math.ceil(rows.length / cols);
+  const chunks = Array.from({ length: cols }, (_, i) => rows.slice(i * per, (i + 1) * per));
+  const totals = plan.installments.reduce((a, i) => ({ unit: a.unit + i.unit, garage: a.garage + i.garage, maintenance: a.maintenance + i.maintenance, total: a.total + i.total }), { unit: plan.downPayment, garage: 0, maintenance: 0, total: plan.downPayment });
+%>
+<div class="schedule cols-<%= cols %>">
+  <% chunks.forEach(chunk => { %>
+  <table class="installments">
+    <thead><tr><th>القسط</th><th>الاستحقاق</th><% if (!compact) { %><th>قيمة القسط</th><% if (showGarage) { %><th>الجراج</th><% } %><th>الصيانة</th><% } %><th>الإجمالي</th></tr></thead>
+    <tbody>
+      <% chunk.forEach(i => { %>
+      <tr class="<%= i.down ? 'down' : i.maintenance ? 'with-maint' : '' %>"><td><%= i.no %></td><td><%= f.date(i.date) %></td><% if (!compact) { %><td><%= f.money(i.unit) %></td><% if (showGarage) { %><td><%= i.down ? '—' : f.money(i.garage) %></td><% } %><td><%= i.down ? '—' : f.money(i.maintenance) %></td><% } %><td><b><%= f.money(i.total) %></b></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% }) %>
+</div>
+<table class="installments schedule-total">
+  <tr>
+    <td>الإجمالي: <b><%= f.money(totals.total) %></b> ج.م</td>
+    <td>الوحدة: <%= f.money(totals.unit) %></td>
+    <% if (showGarage) { %><td>الجراج: <%= f.money(totals.garage) %></td><% } %>
+    <td>الصيانة: <%= f.money(totals.maintenance) %></td>
+    <td><%= plan.count %> قسط — <%= f.frequencyLabel(plan.frequencyMonths) %></td>
+  </tr>
+</table>
